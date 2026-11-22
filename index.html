@@ -3,19 +3,20 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Monthly ETF SIP Splitter</title>
+<title>SIP Calculator</title>
 <link rel="stylesheet" href="/theme.css">
 <meta name="theme-color" content="#fafafa">
 <meta name="color-scheme" content="only light">
 <style>
   /* Look comes from /theme.css (see DESIGN.md). Only app-specific bits here. */
-  :root{ --eq:var(--accent); --intl:#8a7be0; --gold:#c9a227; --debt:#8a97ab; --cash:#c4c4c4; }
+  :root{ --eq:var(--accent); --intl:#8a7be0; --gold:#c9a227; --debt:#8a97ab; --cash:#c4c4c4; --risk:#c2562a; }
   label.big{display:block;font-size:var(--fs-sm);color:var(--muted);margin-bottom:var(--s1)}
   .amount{display:flex;align-items:center;gap:var(--s1);background:var(--soft);border-radius:var(--r-ctl);padding:0 var(--s2)}
   .amount span{font-size:26px;color:var(--muted)}
   .amount input{flex:1;font-size:26px;font-weight:500;padding:12px 0;border:0;background:none;color:var(--ink);width:100%;outline:none}
   .seg{margin-top:var(--s2)}
   .seg small{display:block;font-size:11px;color:var(--muted)}
+  .tabs{margin:0 0 var(--s2)}
   .legend{font-size:var(--fs-sm);color:var(--muted);margin-top:var(--s1)}
   .row{display:flex;align-items:center;gap:12px;padding:12px 0}
   .info{flex:1;min-width:0}
@@ -23,66 +24,211 @@
   .meta{font-size:13px;color:var(--muted);margin-top:2px}
   .pctwrap{display:flex;align-items:center;gap:4px;font-size:var(--fs-sm);color:var(--muted)}
   .pct{width:58px;min-height:40px;padding:0 10px;border:0;border-radius:12px;background:var(--soft);color:var(--ink);text-align:right;outline:none}
-  .pct:focus{box-shadow:0 0 0 2px var(--accent)}
+  .pct:focus,.num:focus{box-shadow:0 0 0 2px var(--accent)}
   .amt{width:88px;text-align:right;font-size:18px;font-weight:500;font-variant-numeric:tabular-nums}
   .note{margin-top:var(--s1)}
   .sum{display:flex;justify-content:space-between;padding:4px 0}
   .sum b{font-weight:500;font-variant-numeric:tabular-nums}
   .bad{color:var(--warn)}
+  .good{color:#1f8a4c}
   .bar{display:flex;height:10px;border-radius:var(--r-pill);overflow:hidden;margin:var(--s2) 0 var(--s1);background:var(--soft)}
   .copy{width:100%;margin-top:var(--s2)}
   ul.rules{margin:var(--s1) 0 0;padding-left:18px;font-size:var(--fs-sm);color:var(--muted)}
   ul.rules li{margin-bottom:6px}
   ul.rules b{color:var(--ink);font-weight:500}
-  h2{font-size:var(--fs);font-weight:500;margin:0}
+  h2{font-size:var(--fs);font-weight:500;margin:0 0 var(--s1)}
   .foot{font-size:12px;color:var(--muted);text-align:center;margin-top:var(--s2)}
+  [hidden]{display:none!important}
+
+  /* Holdings */
+  .hold{padding:14px 0}
+  .hold + .hold{border-top:1px solid var(--line)}
+  .hold .top{display:flex;align-items:baseline;gap:var(--s1)}
+  .hold .top .info{font-weight:500}
+  .hold .val{font-variant-numeric:tabular-nums;font-weight:500}
+  .fields{display:flex;gap:var(--s1);margin-top:var(--s1)}
+  .fields label{flex:1;font-size:12px;color:var(--muted)}
+  .num{display:block;width:100%;min-height:40px;margin-top:2px;padding:0 10px;border:0;border-radius:12px;background:var(--soft);color:var(--ink);font-variant-numeric:tabular-nums;outline:none}
+  .line2{display:flex;justify-content:space-between;gap:var(--s1);font-size:13px;color:var(--muted);margin-top:6px;font-variant-numeric:tabular-nums}
+  .tag{font-size:12px;padding:2px 8px;border-radius:var(--r-pill);background:var(--soft);color:var(--muted);white-space:nowrap}
+  .tag.warn{background:var(--warn-soft);color:var(--warn)}
+  .big-num{font-size:22px;font-weight:500;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .twocol{display:flex;gap:var(--s2)}
+  .twocol > div{flex:1}
+  .btnrow{display:flex;gap:var(--s1);margin-top:var(--s2)}
+  .btnrow .btn{flex:1;padding:0 var(--s2);font-size:var(--fs-sm)}
+  .mixlab{display:flex;justify-content:space-between;font-size:12px;color:var(--muted)}
+  .bar.thin{height:8px;margin:4px 0 var(--s1)}
+
+  /* Risk */
+  .tiles{display:grid;grid-template-columns:1fr 1fr;gap:var(--s1);margin-top:var(--s2)}
+  .tile{background:var(--soft);border-radius:var(--r-ctl);padding:12px 14px}
+  .tile .k{font-size:12px;color:var(--muted)}
+  .tile .v{font-size:20px;font-weight:500;font-variant-numeric:tabular-nums;margin:2px 0}
+  .tile .s{font-size:12px;color:var(--muted)}
+  .rbar{margin:10px 0}
+  .rbar .lab{display:flex;justify-content:space-between;font-size:13px}
+  .rbar .tr{height:6px;border-radius:var(--r-pill);background:var(--soft);margin-top:4px;overflow:hidden}
+  .rbar .tr > div{height:100%;border-radius:var(--r-pill)}
+  .range{position:relative;height:36px;margin:var(--s2) 0 0}
+  .range .track{position:absolute;left:0;right:0;top:15px;height:6px;border-radius:var(--r-pill);background:var(--soft)}
+  .range .span{position:absolute;top:15px;height:6px;border-radius:var(--r-pill);background:var(--accent);opacity:.35}
+  .range .mid,.range .zero{position:absolute;top:8px;width:2px;height:20px;border-radius:2px}
+  .range .mid{background:var(--accent)}
+  .range .zero{background:var(--muted)}
+  .rangelab{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+  .say{font-size:var(--fs-sm);margin-top:var(--s2);line-height:1.55}
 </style>
 </head>
 <body>
 <div class="wrap">
   <a class="back" href="/">← All apps</a>
   <h1 class="title">SIP Calculator</h1>
-  <p class="sub">Type your monthly amount. It shows how many rupees to put in each ETF. Your broker turns the rupees into units.</p>
+  <p class="sub" id="subline">Split this month's money, track what you hold, and see your risk in rupees.</p>
 
-  <div class="card">
-    <label class="big" for="total">Money to invest this month</label>
-    <div class="amount"><span>₹</span><input id="total" type="number" inputmode="numeric" min="0" step="500" value="10000"></div>
-    <div class="seg" id="presets">
-      <button data-p="safe">Safer<small>60 / 20 / 20</small></button>
-      <button data-p="balanced">Balanced<small>75 / 10 / 15</small></button>
-      <button data-p="growth">Growth<small>80 / 10 / 10</small></button>
+  <div class="seg tabs" id="tabs">
+    <button data-t="month" class="on">This month</button>
+    <button data-t="hold">Holdings</button>
+    <button data-t="risk">Risk</button>
+  </div>
+
+  <!-- ================= TAB 1: THIS MONTH ================= -->
+  <section id="t-month">
+    <div class="card">
+      <label class="big" for="total">Money to invest this month</label>
+      <div class="amount"><span>₹</span><input id="total" type="number" inputmode="numeric" min="0" step="500" value="10000"></div>
+      <div class="seg" id="presets">
+        <button data-p="safe">Safer<small>60 / 20 / 20</small></button>
+        <button data-p="balanced">Balanced<small>75 / 10 / 15</small></button>
+        <button data-p="growth">Growth<small>80 / 10 / 10</small></button>
+      </div>
+      <div class="legend">Equity / Gold / Debt. Change any % below to make your own mix.</div>
+      <div class="seg" id="mode">
+        <button data-m="pct" class="on">By target %</button>
+        <button data-m="fill">Fill the gaps</button>
+      </div>
+      <div class="legend" id="modehelp"></div>
     </div>
-    <div class="legend">Equity / Gold / Debt. Change any % below to make your own mix.</div>
-  </div>
 
-  <div class="card">
-    <div id="list"></div>
-    <div class="note" id="guard" hidden></div>
-  </div>
+    <div class="card">
+      <div id="list"></div>
+      <div class="note" id="guard" hidden></div>
+    </div>
 
-  <div class="card">
-    <div class="sum"><span>Total % set</span><b id="pct"></b></div>
-    <div class="sum"><span>Total to invest</span><b id="sumAmt"></b></div>
-    <div class="bar" id="bar"></div>
-    <div class="legend" id="mix"></div>
-    <button class="btn btn-primary copy" id="copy">Copy this month's list</button>
-  </div>
+    <div class="card">
+      <div class="sum"><span>Total % set</span><b id="pct"></b></div>
+      <div class="sum"><span>Total to invest</span><b id="sumAmt"></b></div>
+      <div class="bar" id="bar"></div>
+      <div class="legend" id="mix"></div>
+      <button class="btn btn-primary copy" id="copy">Copy this month's list</button>
+    </div>
 
-  <div class="card">
-    <h2>Rules that keep this working</h2>
-    <ul class="rules">
-      <li><b>Keep JUNIORBEES at or below half of NIFTYBEES.</b> More than that and your "large-cap core" stops being the core.</li>
-      <li><b>MON100:</b> if its price is more than ~2% above iNAV on SIP day, put that month's MON100 money into NIFTYBEES.</li>
-      <li><b>Never stop the SIP in a fall.</b> Falls are when the SIP buys the most units for the same rupees.</li>
-      <li><b>Once a year (April):</b> look at what you actually hold. Send new money to whatever is below target, so you don't have to sell.</li>
-    </ul>
-  </div>
+    <div class="card">
+      <h2>Rules that keep this working</h2>
+      <ul class="rules">
+        <li><b>Keep JUNIORBEES at or below half of NIFTYBEES.</b> More than that and your "large-cap core" stops being the core.</li>
+        <li><b>MON100:</b> if its price is more than ~2% above iNAV on SIP day, put that month's MON100 money into NIFTYBEES.</li>
+        <li><b>Never stop the SIP in a fall.</b> Falls are when the SIP buys the most units for the same rupees.</li>
+        <li><b>Use "Fill the gaps".</b> New money goes to whatever is below target, so you rebalance without selling (no tax).</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ================= TAB 2: HOLDINGS ================= -->
+  <section id="t-hold" hidden>
+    <div class="card">
+      <div class="twocol">
+        <div><div class="muted" style="font-size:var(--fs-sm)">Value now</div><div class="big-num" id="hValue">—</div></div>
+        <div><div class="muted" style="font-size:var(--fs-sm)">Gain / loss</div><div class="big-num" id="hPnl">—</div></div>
+      </div>
+      <div class="legend" id="hInv"></div>
+      <div style="margin-top:var(--s2)">
+        <div class="mixlab"><span>Your mix now</span><span id="mixNowTxt"></span></div>
+        <div class="bar thin" id="mixNow"></div>
+        <div class="mixlab"><span>Target mix</span><span id="mixTgtTxt"></span></div>
+        <div class="bar thin" id="mixTgt"></div>
+      </div>
+      <div class="note" id="driftNote" hidden></div>
+      <div class="legend" id="priceDate"></div>
+    </div>
+
+    <div class="card">
+      <h2>What you hold</h2>
+      <div class="legend" style="margin-top:0">Copy <b>Qty</b> and <b>Avg</b> from your broker's Holdings page. Price fills in by itself each evening; type one to override.</div>
+      <div id="hlist"></div>
+    </div>
+
+    <div class="card">
+      <h2>Backup</h2>
+      <div class="legend" style="margin-top:0">Holdings are saved only on this phone. Keep a backup file.</div>
+      <div class="btnrow">
+        <button class="btn" id="exp">Save backup</button>
+        <button class="btn" id="impBtn">Load backup</button>
+        <input type="file" id="imp" accept=".json,application/json" hidden>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= TAB 3: RISK ================= -->
+  <section id="t-risk" hidden>
+    <div class="card">
+      <h2>How bad can the next few months get?</h2>
+      <div class="legend" style="margin-top:0" id="rSource"></div>
+      <div id="rAmtWrap" hidden>
+        <label class="big" for="rAmt" style="margin-top:var(--s2)">Try with an amount</label>
+        <div class="amount"><span>₹</span><input id="rAmt" type="number" inputmode="numeric" min="0" step="10000" value="500000"></div>
+      </div>
+      <div class="seg" id="horizon">
+        <button data-h="1" class="on">1 month</button>
+        <button data-h="3">3 months</button>
+        <button data-h="6">6 months</button>
+      </div>
+    </div>
+
+    <div class="note" id="rNoData" hidden>Market data isn't ready yet. On GitHub open <b>Actions → Update market data → Run workflow</b> once. After that it updates by itself every weekday evening.</div>
+
+    <div id="rOut" hidden>
+      <div class="card">
+        <h2 id="rRangeTitle">10,000 possible futures</h2>
+        <div class="range" id="rRange"></div>
+        <div class="rangelab"><span id="rLo"></span><span id="rMid"></span><span id="rHi"></span></div>
+        <div class="tiles">
+          <div class="tile"><div class="k">Bad case (1 in 20)</div><div class="v bad" id="tVar"></div><div class="s" id="tVarS"></div></div>
+          <div class="tile"><div class="k">Very bad (avg of worst 5%)</div><div class="v bad" id="tEs"></div><div class="s" id="tEsS"></div></div>
+          <div class="tile"><div class="k">Chance of being down</div><div class="v" id="tLoss"></div><div class="s">at the end of the period</div></div>
+          <div class="tile"><div class="k">Worst real past stretch</div><div class="v bad" id="tHist"></div><div class="s" id="tHistS"></div></div>
+        </div>
+        <div class="tiles" style="grid-template-columns:1fr">
+          <div class="tile"><div class="k">If the 2020 crash happened again (19 Feb – 23 Mar 2020)</div><div class="v bad" id="tCrash"></div><div class="s" id="tCrashS"></div></div>
+        </div>
+        <p class="say" id="rSay"></p>
+      </div>
+
+      <div class="card">
+        <h2>Where the risk comes from</h2>
+        <div class="legend" style="margin-top:0">Blue: share of your money. Orange: share of the loss in the bad 1-in-20 futures.</div>
+        <div id="rContrib"></div>
+      </div>
+
+      <div class="card">
+        <h2>How this works</h2>
+        <ul class="rules">
+          <li>Each future is built from <b>real past days since 2011</b>, picked in 5-day blocks so crash days stay together.</li>
+          <li>It shows a <b>range, not a forecast</b>. Nobody knows which way the market goes next.</li>
+          <li>Real crashes can be worse than anything in the data.</li>
+          <li id="rNotes"></li>
+        </ul>
+      </div>
+    </div>
+  </section>
 
   <p class="foot">Educational tool, not financial advice.</p>
 </div>
 
 <script>
-// ---- Single source of truth ----
+// =====================================================================
+// 1. SINGLE SOURCE OF TRUTH
+// =====================================================================
 const ETFS = [
   {id:"NIFTYBEES",  label:"Nifty 50 – top 50 companies",     cls:"Equity", color:"var(--eq)"},
   {id:"JUNIORBEES", label:"Nifty Next 50 – companies 51–100", cls:"Equity", color:"var(--eq)"},
@@ -96,33 +242,167 @@ const PRESETS = {
   balanced:{NIFTYBEES:45, JUNIORBEES:20, MON100:10, GOLDBEES:10, EBBETF0433:15, LIQUIDBEES:0},
   growth:  {NIFTYBEES:50, JUNIORBEES:25, MON100:5, GOLDBEES:10, EBBETF0433:10, LIQUIDBEES:0},
 };
-const KEY = "sip-splitter-v2";
-let state = { total:10000, preset:"balanced", pct:{...PRESETS.balanced} };
+const CLS_COLOR = {Equity:"var(--eq)", Gold:"var(--gold)", Debt:"var(--debt)", Cash:"var(--cash)"};
+const DRIFT_WARN = 5;           // % points away from target before we flag it
+const LIQUID_YIELD = 0.06;      // LIQUIDBEES has no price history on Yahoo: assume steady 6%/yr
+const N_SIMS = 10000, BLOCK = 5, SEED = 42;
+const MONTH_DAYS = 21;
 
-try {
-  const saved = JSON.parse(localStorage.getItem(KEY) || "null");
-  if (saved) state = {...state, ...saved, pct:{...state.pct, ...saved.pct}};
-} catch(e) {}
-function save(){ try { localStorage.setItem(KEY, JSON.stringify(state)); } catch(e) {} }
+const KEY  = "sip-splitter-v2";     // calculator (unchanged key, so old settings stay)
+const HKEY = "sip-holdings-v1";     // holdings: only on this phone
 
-const inr = n => "₹" + Math.round(n).toLocaleString("en-IN");
+let state = { total:10000, preset:"balanced", pct:{...PRESETS.balanced}, mode:"pct" };
+let hold  = { items:{}, horizon:1, riskAmt:500000 };   // items[id] = {qty, avg, price}
+let market = null;                                       // data/market.json
+let tab = "month";
+
+try { const s = JSON.parse(localStorage.getItem(KEY) || "null"); if (s) state = {...state, ...s, pct:{...state.pct, ...s.pct}}; } catch(e) {}
+try { const h = JSON.parse(localStorage.getItem(HKEY) || "null"); if (h) hold = {...hold, ...h, items:{...h.items}}; } catch(e) {}
+function save(){ try { localStorage.setItem(KEY, JSON.stringify(state)); localStorage.setItem(HKEY, JSON.stringify(hold)); } catch(e) {} }
+
+const inr  = n => (n < 0 ? "−₹" : "₹") + Math.round(Math.abs(n)).toLocaleString("en-IN");
+const sinr = n => (n > 0 ? "+" : "") + inr(n);
+const pc   = (x, d=1) => (x * 100).toFixed(d) + "%";
+const spc  = (x, d=1) => (x > 0 ? "+" : x < 0 ? "−" : "") + Math.abs(x * 100).toFixed(d) + "%";
 const $ = id => document.getElementById(id);
+const num = v => { const x = Number(v); return Number.isFinite(x) && x > 0 ? x : 0; };
 
-// ---- Core math: rupees per ETF, rounded so the parts add up exactly to the total ----
+// =====================================================================
+// 2. HOLDINGS MATH
+// =====================================================================
+function priceOf(id){
+  const it = hold.items[id] || {};
+  if (num(it.price)) return {p:num(it.price), src:"typed"};
+  if (market && market.prices && market.prices[id]) return {p:market.prices[id].close, src:"auto"};
+  if (num(it.avg)) return {p:num(it.avg), src:"avg"};
+  return {p:0, src:"none"};
+}
+function holdings(){
+  const rows = ETFS.map(e => {
+    const it = hold.items[e.id] || {};
+    const qty = num(it.qty), avg = num(it.avg), pr = priceOf(e.id);
+    const value = qty * pr.p, invested = qty * avg;
+    return {...e, qty, avg, price:pr.p, src:pr.src, value, invested, pnl:value - invested};
+  });
+  const value = rows.reduce((s,r) => s + r.value, 0);
+  const invested = rows.reduce((s,r) => s + r.invested, 0);
+  const pctSum = ETFS.reduce((s,e) => s + num(state.pct[e.id]), 0) || 1;
+  rows.forEach(r => { r.w = value > 0 ? r.value / value : 0; r.tw = num(state.pct[r.id]) / pctSum; r.drift = r.w - r.tw; });
+  return {rows, value, invested, pnl:value - invested};
+}
+
+// =====================================================================
+// 3. THIS MONTH: rupees per ETF (by target %, or filling the gaps)
+// =====================================================================
 function compute(){
   const total = Math.max(0, Math.round(Number(state.total) || 0));
   const rows = ETFS.map(e => ({...e, pct: Math.max(0, Number(state.pct[e.id]) || 0)}));
   const pctSum = rows.reduce((s,r) => s + r.pct, 0);
-  rows.forEach(r => { r.raw = total * r.pct / 100; r.amt = Math.floor(r.raw); });
-  // hand out leftover rupees (from rounding) to the biggest fractional parts
-  if (Math.abs(pctSum - 100) < 0.01) {
-    let left = total - rows.reduce((s,r) => s + r.amt, 0);
-    [...rows].sort((a,b) => (b.raw - b.amt) - (a.raw - a.amt)).forEach(r => { if (left > 0 && r.pct > 0) { r.amt++; left--; } });
+  const H = holdings();
+  const useFill = state.mode === "fill" && H.value > 0 && Math.abs(pctSum - 100) < 0.01;
+
+  if (useFill) {
+    // after adding this month's money, how far is each ETF below its target?
+    const after = H.value + total;
+    rows.forEach((r,i) => { r.need = Math.max(0, r.pct / 100 * after - H.rows[i].value); });
+    const needSum = rows.reduce((s,r) => s + r.need, 0);
+    rows.forEach(r => { r.raw = needSum > 0 ? total * r.need / needSum : total * r.pct / 100; });
+  } else {
+    rows.forEach(r => { r.raw = total * r.pct / 100; });
   }
-  return {total, rows, pctSum};
+  rows.forEach(r => { r.amt = Math.floor(r.raw); });
+  if (Math.abs(pctSum - 100) < 0.01) {     // hand out rounding leftovers to the biggest fractions
+    let left = total - rows.reduce((s,r) => s + r.amt, 0);
+    [...rows].sort((a,b) => (b.raw - b.amt) - (a.raw - a.amt)).forEach(r => { if (left > 0 && r.raw > 0) { r.amt++; left--; } });
+  }
+  return {total, rows, pctSum, useFill, H};
 }
 
-// ---- Render ----
+// =====================================================================
+// 4. RISK: Monte Carlo from real past days (5-day blocks)
+// =====================================================================
+function mulberry32(a){ return function(){ a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a);
+  t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+
+let CS = null;   // cumulative log returns per asset: CS[a][i] = sum of first i days
+function prepReturns(){
+  const R = market.returns, T = R.dates.length;
+  CS = R.assets.map(a => { const c = new Float64Array(T + 1); const lr = R.lr[a];
+    for (let i = 0; i < T; i++) c[i+1] = c[i] + lr[i] / R.scale; return c; });
+}
+function findDay(yyyymmdd){ const d = market.returns.dates; for (let i = 0; i < d.length; i++) if (d[i] >= yyyymmdd) return i; return -1; }
+const fmtDay = n => { const s = String(n); return new Date(+s.slice(0,4), +s.slice(4,6)-1, +s.slice(6,8)).toLocaleDateString("en-IN", {day:"numeric", month:"short", year:"numeric"}); };
+
+function riskInputs(){
+  const H = holdings();
+  if (H.value > 0) return {values: H.rows.map(r => r.value), total: H.value, src:"holdings"};
+  const amt = num(hold.riskAmt) || 500000;
+  const pctSum = ETFS.reduce((s,e) => s + num(state.pct[e.id]), 0) || 1;
+  return {values: ETFS.map(e => amt * num(state.pct[e.id]) / pctSum), total: amt, src:"target"};
+}
+
+function runRisk(){
+  const inp = riskInputs();
+  const R = market.returns, T = R.dates.length;
+  const days = hold.horizon * MONTH_DAYS;
+  const idxOf = ETFS.map(e => R.assets.indexOf(e.id));        // -1 = no history (LIQUIDBEES)
+  const liqGrow = Math.pow(1 + LIQUID_YIELD, days / 252) - 1;
+  const n = ETFS.length;
+
+  // block lengths that add up to `days`
+  const blocks = []; for (let left = days; left > 0; left -= BLOCK) blocks.push(Math.min(BLOCK, left));
+
+  const rnd = mulberry32(SEED);
+  const pnl = new Float64Array(N_SIMS), each = new Float64Array(N_SIMS * n), acc = new Float64Array(n);
+  for (let k = 0; k < N_SIMS; k++) {
+    acc.fill(0);
+    for (const len of blocks) {
+      const s = Math.floor(rnd() * (T - len + 1));             // same days for every ETF: keeps them moving together
+      for (let a = 0; a < n; a++) if (idxOf[a] >= 0) acc[a] += CS[idxOf[a]][s + len] - CS[idxOf[a]][s];
+    }
+    let tot = 0;
+    for (let a = 0; a < n; a++) {
+      const v = inp.values[a]; if (!v) continue;
+      const g = idxOf[a] >= 0 ? Math.exp(acc[a]) - 1 : liqGrow;
+      each[k * n + a] = v * g; tot += v * g;
+    }
+    pnl[k] = tot;
+  }
+  const sorted = Float64Array.from(pnl).sort();
+  const q = p => sorted[Math.min(N_SIMS - 1, Math.floor(p * N_SIMS))];
+  const cut = q(0.05);
+  let esSum = 0, esN = 0, down = 0; const contrib = new Float64Array(n);
+  for (let k = 0; k < N_SIMS; k++) {
+    if (pnl[k] < 0) down++;
+    if (pnl[k] <= cut) { esSum += pnl[k]; esN++; for (let a = 0; a < n; a++) contrib[a] += each[k * n + a]; }
+  }
+  const es = esSum / esN;
+
+  // worst real stretch of the same length, with today's rupees
+  let worst = Infinity, worstEnd = 0;
+  for (let s = 0; s + days <= T; s++) {
+    let tot = 0;
+    for (let a = 0; a < n; a++) { const v = inp.values[a]; if (!v) continue;
+      tot += v * (idxOf[a] >= 0 ? Math.exp(CS[idxOf[a]][s + days] - CS[idxOf[a]][s]) - 1 : liqGrow); }
+    if (tot < worst) { worst = tot; worstEnd = s + days - 1; }
+  }
+
+  // replay of the 2020 crash
+  const c0 = findDay(20200219), c1 = findDay(20200324);
+  let crash = null;
+  if (c0 >= 0 && c1 > c0) {
+    crash = 0;
+    for (let a = 0; a < n; a++) { const v = inp.values[a]; if (!v) continue;
+      crash += v * (idxOf[a] >= 0 ? Math.exp(CS[idxOf[a]][c1] - CS[idxOf[a]][c0]) - 1 : 0); }
+  }
+
+  return {inp, p5:cut, p50:q(0.5), p95:q(0.95), es, down: down / N_SIMS, worst, worstEnd,
+          crash, contrib: Array.from(contrib, c => es !== 0 ? (c / esN) / es : 0)};
+}
+
+// =====================================================================
+// 5. RENDER
+// =====================================================================
 function buildList(){
   $("list").innerHTML = ETFS.map(e => `
     <div class="row">
@@ -137,51 +417,202 @@ function buildList(){
   });
 }
 
-function update(){
-  const {total, rows, pctSum} = compute();
-  rows.forEach(r => $("a-"+r.id).textContent = r.pct > 0 ? inr(r.amt) : "—");
+function buildHoldList(){
+  $("hlist").innerHTML = ETFS.map(e => `
+    <div class="hold">
+      <div class="top"><span class="dot" style="background:${e.color};margin-top:7px"></span>
+        <div class="info">${e.id}</div><span class="tag" id="d-${e.id}"></span></div>
+      <div class="fields">
+        <label>Qty<input class="num" type="number" inputmode="decimal" min="0" step="1" data-id="${e.id}" data-f="qty"></label>
+        <label>Avg ₹<input class="num" type="number" inputmode="decimal" min="0" step="0.01" data-id="${e.id}" data-f="avg"></label>
+        <label>Price ₹<input class="num" type="number" inputmode="decimal" min="0" step="0.01" data-id="${e.id}" data-f="price"></label>
+      </div>
+      <div class="line2"><span id="v-${e.id}"></span><span id="p-${e.id}"></span></div>
+    </div>`).join("");
+  $("hlist").querySelectorAll("input").forEach(inp => {
+    const it = hold.items[inp.dataset.id] || {};
+    inp.value = it[inp.dataset.f] ?? "";
+    inp.addEventListener("input", () => {
+      const id = inp.dataset.id; hold.items[id] = {...(hold.items[id] || {}), [inp.dataset.f]: inp.value};
+      update();
+    });
+  });
+}
 
-  const ok = Math.abs(pctSum - 100) < 0.01;
-  $("pct").textContent = pctSum.toFixed(0) + "%" + (ok ? "" : " (must be 100)");
+function mixBar(el, txtEl, weights){
+  const cls = {};
+  ETFS.forEach((e,i) => { cls[e.cls] = (cls[e.cls] || 0) + weights[i]; });
+  const parts = Object.entries(cls).filter(([,v]) => v > 0.0005);
+  el.innerHTML = parts.map(([k,v]) => `<div style="width:${v*100}%;background:${CLS_COLOR[k]}"></div>`).join("");
+  txtEl.textContent = parts.map(([k,v]) => `${k} ${Math.round(v*100)}%`).join(" · ");
+}
+
+function renderMonth(c){
+  c.rows.forEach(r => $("a-"+r.id).textContent = r.amt > 0 ? inr(r.amt) : "—");
+  const ok = Math.abs(c.pctSum - 100) < 0.01;
+  $("pct").textContent = c.pctSum.toFixed(0) + "%" + (ok ? "" : " (must be 100)");
   $("pct").className = ok ? "" : "bad";
-  $("sumAmt").textContent = inr(rows.reduce((s,r) => s + r.amt, 0));
+  $("sumAmt").textContent = inr(c.rows.reduce((s,r) => s + r.amt, 0));
 
-  // guardrail: Next 50 vs Nifty 50
-  const n50 = Number(state.pct.NIFTYBEES)||0, nn50 = Number(state.pct.JUNIORBEES)||0;
-  const g = $("guard");
+  const n50 = Number(state.pct.NIFTYBEES)||0, nn50 = Number(state.pct.JUNIORBEES)||0, g = $("guard");
   if (nn50 > n50 / 2) { g.hidden = false; g.textContent = `JUNIORBEES (${nn50}%) is more than half of NIFTYBEES (${n50}%). Expect deeper falls in bad years. Keep it at ${Math.floor(n50/2)}% or less unless you are sure you will hold through a 50%+ drop.`; }
   else g.hidden = true;
 
-  // mix by asset class
   const cls = {};
-  rows.forEach(r => { cls[r.cls] = (cls[r.cls]||0) + r.pct; });
-  const colors = {Equity:"var(--eq)", Gold:"var(--gold)", Debt:"var(--debt)", Cash:"var(--cash)"};
+  c.rows.forEach(r => { cls[r.cls] = (cls[r.cls]||0) + r.pct; });
   const parts = Object.entries(cls).filter(([,v]) => v > 0);
-  $("bar").innerHTML = pctSum > 0 ? parts.map(([k,v]) => `<div style="width:${v/pctSum*100}%;background:${colors[k]}"></div>`).join("") : "";
+  $("bar").innerHTML = c.pctSum > 0 ? parts.map(([k,v]) => `<div style="width:${v/c.pctSum*100}%;background:${CLS_COLOR[k]}"></div>`).join("") : "";
   $("mix").textContent = parts.map(([k,v]) => `${k} ${v}%`).join(" · ");
 
   document.querySelectorAll("#presets button").forEach(b => b.classList.toggle("on", b.dataset.p === state.preset));
+  document.querySelectorAll("#mode button").forEach(b => b.classList.toggle("on", b.dataset.m === state.mode));
+  $("modehelp").textContent = state.mode === "fill"
+    ? (c.useFill ? "This month's money goes to the ETFs that are below target in your holdings. Nothing is sold."
+                 : "Add your holdings in the Holdings tab first. Until then it splits by target %.")
+    : "Every month split the same way, by target %.";
+}
+
+function renderHold(H){
+  $("hValue").textContent = H.value > 0 ? inr(H.value) : "—";
+  $("hPnl").textContent = H.invested > 0 ? sinr(H.pnl) : "—";
+  $("hPnl").className = "big-num " + (H.pnl > 0 ? "good" : H.pnl < 0 ? "bad" : "");
+  $("hInv").textContent = H.invested > 0 ? `Invested ${inr(H.invested)} · ${spc(H.pnl / H.invested)}` : "Add your holdings below.";
+
+  mixBar($("mixNow"), $("mixNowTxt"), H.rows.map(r => r.w));
+  mixBar($("mixTgt"), $("mixTgtTxt"), H.rows.map(r => r.tw));
+
+  const off = [];
+  H.rows.forEach(r => {
+    const tag = $("d-"+r.id);
+    const show = H.value > 0 && (r.qty > 0 || r.tw > 0);
+    tag.hidden = !show;
+    if (!show) return;
+    const pts = r.drift * 100;
+    tag.textContent = `${Math.round(r.w*100)}% of ${Math.round(r.tw*100)}%`;
+    tag.className = "tag" + (Math.abs(pts) >= DRIFT_WARN ? " warn" : "");
+    if (Math.abs(pts) >= DRIFT_WARN) off.push(`${r.id} ${pts > 0 ? "+" : "−"}${Math.abs(pts).toFixed(0)} pts`);
+  });
+  H.rows.forEach(r => {
+    $("v-"+r.id).textContent = r.qty > 0 ? `Value ${inr(r.value)}` : "";
+    const srcTxt = r.src === "auto" ? "" : r.src === "typed" ? " (typed)" : r.src === "avg" ? " (no price yet)" : "";
+    $("p-"+r.id).innerHTML = r.qty > 0 && r.avg > 0
+      ? `<span class="${r.pnl >= 0 ? "good" : "bad"}">${sinr(r.pnl)} · ${spc(r.pnl / r.invested)}</span>${srcTxt}` : "";
+    const pin = document.querySelector(`input[data-id="${r.id}"][data-f="price"]`);
+    if (pin && market && market.prices[r.id]) pin.placeholder = market.prices[r.id].close;
+  });
+  const dn = $("driftNote");
+  dn.hidden = off.length === 0;
+  dn.textContent = off.length ? `Away from target by ${DRIFT_WARN}+ points: ${off.join(", ")}. Use "Fill the gaps" in This month to fix it without selling.` : "";
+  const d = market && market.prices && market.prices.NIFTYBEES ? market.prices.NIFTYBEES.date : null;
+  $("priceDate").textContent = d ? `Prices as of ${new Date(d).toLocaleDateString("en-IN", {day:"numeric", month:"short", year:"numeric"})}.` : "Auto prices not loaded yet. Type prices to see values.";
+}
+
+function renderRisk(){
+  document.querySelectorAll("#horizon button").forEach(b => b.classList.toggle("on", +b.dataset.h === hold.horizon));
+  const H = holdings();
+  $("rAmtWrap").hidden = H.value > 0;
+  $("rSource").textContent = H.value > 0 ? `Using your holdings: ${inr(H.value)}.` : "No holdings yet, so this uses your target mix. Add holdings to see your real risk.";
+  const ready = market && market.returns && market.returns.dates && market.returns.dates.length > 300;
+  $("rNoData").hidden = !!ready; $("rOut").hidden = !ready;
+  if (!ready) return;
+  if (!CS) prepReturns();
+
+  const r = runRisk(), tot = r.inp.total, mon = hold.horizon === 1 ? "month" : `${hold.horizon} months`;
+  $("rRangeTitle").textContent = `Next ${mon}: 10,000 possible futures`;
+
+  // range bar: 5% .. 95%, mark middle and zero
+  const lo = Math.min(r.p5, 0), hi = Math.max(r.p95, 0), span = hi - lo || 1, X = v => ((v - lo) / span * 100).toFixed(2) + "%";
+  $("rRange").innerHTML = `<div class="track"></div><div class="span" style="left:${X(r.p5)};width:${((r.p95 - r.p5) / span * 100).toFixed(2)}%"></div>
+    <div class="zero" style="left:${X(0)}"></div><div class="mid" style="left:${X(r.p50)}"></div>`;
+  $("rLo").textContent = `bad ${sinr(r.p5)}`; $("rMid").textContent = `middle ${sinr(r.p50)}`; $("rHi").textContent = `good ${sinr(r.p95)}`;
+
+  $("tVar").textContent = sinr(r.p5);  $("tVarS").textContent = `${spc(r.p5 / tot)} · or worse in 1 of 20`;
+  $("tEs").textContent  = sinr(r.es);  $("tEsS").textContent  = `${spc(r.es / tot)} · when it's bad`;
+  $("tLoss").textContent = pc(r.down, 0);
+  $("tHist").textContent = sinr(r.worst); $("tHistS").textContent = `${spc(r.worst / tot)} · ending ${fmtDay(market.returns.dates[r.worstEnd])}`;
+  if (r.crash !== null) { $("tCrash").textContent = sinr(r.crash); $("tCrashS").textContent = `${spc(r.crash / tot)} in about 5 weeks`; }
+  ["tVar","tEs","tHist","tCrash"].forEach((id,i) => { const v = [r.p5, r.es, r.worst, r.crash][i]; $(id).className = "v " + (v < 0 ? "bad" : "good"); });
+
+  $("rSay").innerHTML = `In 1 of 20 futures, your ${inr(tot)} could be <b>${inr(tot + r.p5)}</b> or less after ${hold.horizon === 1 ? "a month" : mon}.
+    If that happens, <b>don't stop the SIP</b>: that's when it buys the most units.`;
+
+  // contribution bars
+  const H2 = r.inp.values.map(v => v / tot);
+  $("rContrib").innerHTML = ETFS.map((e,i) => {
+    if (H2[i] < 0.0005 && Math.abs(r.contrib[i]) < 0.0005) return "";
+    const c = Math.max(0, r.contrib[i]);
+    return `<div class="rbar"><div class="lab"><span>${e.id}</span><span class="muted">${Math.round(H2[i]*100)}% money · ${Math.round(r.contrib[i]*100)}% of bad loss</span></div>
+      <div class="tr"><div style="width:${H2[i]*100}%;background:var(--accent)"></div></div>
+      <div class="tr"><div style="width:${Math.min(100, c*100)}%;background:var(--risk)"></div></div></div>`;
+  }).join("");
+  $("rNotes").innerHTML = `Data ${fmtDay(market.returns.dates[0])} to ${fmtDay(market.returns.dates.at(-1))}. Bond history before 2020 is a steady 7% (its risk is understated). LIQUIDBEES assumed a steady ${pc(LIQUID_YIELD,0)}/yr.`;
+}
+
+let riskTimer = null;
+function update(){
+  const c = compute();
+  renderMonth(c);
+  renderHold(c.H);
+  if (tab === "risk") { clearTimeout(riskTimer); riskTimer = setTimeout(renderRisk, 60); }
   save();
 }
 
-// ---- Wire up ----
+// =====================================================================
+// 6. WIRE UP
+// =====================================================================
 $("total").value = state.total;
 $("total").addEventListener("input", e => { state.total = e.target.value; update(); });
 document.querySelectorAll("#presets button").forEach(b => b.addEventListener("click", () => {
-  state.preset = b.dataset.p;
-  state.pct = {...PRESETS[b.dataset.p]};
+  state.preset = b.dataset.p; state.pct = {...PRESETS[b.dataset.p]};
   document.querySelectorAll("#list input").forEach(i => i.value = state.pct[i.dataset.id]);
   update();
 }));
+document.querySelectorAll("#mode button").forEach(b => b.addEventListener("click", () => { state.mode = b.dataset.m; update(); }));
+document.querySelectorAll("#tabs button").forEach(b => b.addEventListener("click", () => {
+  tab = b.dataset.t;
+  document.querySelectorAll("#tabs button").forEach(x => x.classList.toggle("on", x === b));
+  ["month","hold","risk"].forEach(t => $("t-"+t).hidden = t !== tab);
+  update(); if (tab === "risk") renderRisk();
+}));
+document.querySelectorAll("#horizon button").forEach(b => b.addEventListener("click", () => { hold.horizon = +b.dataset.h; save(); renderRisk(); }));
+$("rAmt").value = hold.riskAmt;
+$("rAmt").addEventListener("input", e => { hold.riskAmt = e.target.value; update(); });
+
 $("copy").addEventListener("click", async () => {
   const {rows} = compute();
-  const text = rows.filter(r => r.pct > 0).map(r => `${r.id}: ${inr(r.amt)}`).join("\n");
+  const text = rows.filter(r => r.amt > 0).map(r => `${r.id}: ${inr(r.amt)}`).join("\n");
   try { await navigator.clipboard.writeText(text); $("copy").textContent = "Copied ✓"; }
   catch(e) { $("copy").textContent = "Copy blocked – long-press the amounts instead"; }
   setTimeout(() => $("copy").textContent = "Copy this month's list", 1800);
 });
+
+$("exp").addEventListener("click", () => {
+  const blob = new Blob([JSON.stringify({app:"sipcalc", saved:new Date().toISOString(), holdings:hold.items, targets:state.pct}, null, 2)], {type:"application/json"});
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
+  a.download = `sipcalc-backup-${new Date().toISOString().slice(0,10)}.json`; a.click(); URL.revokeObjectURL(a.href);
+});
+$("impBtn").addEventListener("click", () => $("imp").click());
+$("imp").addEventListener("change", async e => {
+  const f = e.target.files[0]; if (!f) return;
+  try {
+    const d = JSON.parse(await f.text());
+    if (!d.holdings) throw new Error("not a sipcalc backup");
+    hold.items = d.holdings; if (d.targets) { state.pct = {...state.pct, ...d.targets}; state.preset = null; }
+    buildList(); buildHoldList(); update(); $("impBtn").textContent = "Loaded ✓";
+  } catch(err) { $("impBtn").textContent = "Not a valid backup"; }
+  setTimeout(() => $("impBtn").textContent = "Load backup", 1800);
+  e.target.value = "";
+});
+
 buildList();
+buildHoldList();
 update();
+
+// load market data (prices + history), written every weekday evening by GitHub Actions
+fetch("data/market.json", {cache:"no-cache"})
+  .then(r => r.ok ? r.json() : null)
+  .then(d => { if (d && d.prices) { market = d; CS = null; update(); if (tab === "risk") renderRisk(); } })
+  .catch(() => {});
 </script>
 </body>
 </html>
