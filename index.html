@@ -78,6 +78,27 @@
   .range .zero{background:var(--muted)}
   .rangelab{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
   .say{font-size:var(--fs-sm);margin-top:var(--s2);line-height:1.55}
+  .pw{display:flex;gap:var(--s2);padding:12px 0}
+  .pw + .pw{border-top:1px solid var(--line)}
+  .pwk{flex:none;width:64px;font-size:var(--fs-sm);color:var(--muted);padding-top:2px}
+  .pwk.bad{color:var(--warn)}
+  .pwv{flex:1;font-size:var(--fs-sm)}
+  .pwv b{display:block;font-size:var(--fs);font-weight:500;font-variant-numeric:tabular-nums}
+  .ev{display:flex;justify-content:space-between;align-items:baseline;gap:var(--s1);padding:10px 0;font-size:var(--fs-sm)}
+  .ev + .ev{border-top:1px solid var(--line)}
+  .ev .n{flex:1}
+  .ev .n small{display:block;color:var(--muted);font-size:12px}
+  .ev .x{font-variant-numeric:tabular-nums;font-weight:500;text-align:right;white-space:nowrap}
+  .ev .x small{display:block;font-weight:400;font-size:12px;color:var(--muted)}
+  .check{margin-top:var(--s2)}
+  .downrow{display:flex;align-items:center;gap:var(--s1);font-size:13px;margin:6px 0}
+  .downrow .l{width:64px;color:var(--muted)}
+  .downrow .t{flex:1;height:6px;border-radius:var(--r-pill);background:var(--soft);overflow:hidden}
+  .downrow .t div{height:100%;background:var(--muted);border-radius:var(--r-pill)}
+  .downrow .p{width:40px;text-align:right;font-variant-numeric:tabular-nums}
+  .downrow.on .l,.downrow.on .p{color:var(--ink);font-weight:500}
+  .downrow.on .t div{background:var(--accent)}
+  #rHist svg{display:block;width:100%;height:auto;margin-top:var(--s1)}
 </style>
 </head>
 <body>
@@ -172,49 +193,79 @@
   <!-- ================= TAB 3: RISK ================= -->
   <section id="t-risk" hidden>
     <div class="card">
-      <h2>How bad can the next few months get?</h2>
+      <h2>How bad can it get?</h2>
       <div class="legend" style="margin-top:0" id="rSource"></div>
       <div id="rAmtWrap" hidden>
         <label class="big" for="rAmt" style="margin-top:var(--s2)">Try with an amount</label>
         <div class="amount"><span>₹</span><input id="rAmt" type="number" inputmode="numeric" min="0" step="10000" value="500000"></div>
       </div>
       <div class="seg" id="horizon">
-        <button data-h="1" class="on">1 month</button>
-        <button data-h="3">3 months</button>
-        <button data-h="6">6 months</button>
+        <button data-h="1" class="on">1 mo</button>
+        <button data-h="3">3 mo</button>
+        <button data-h="6">6 mo</button>
+        <button data-h="12">1 yr</button>
       </div>
     </div>
 
     <div class="note" id="rNoData" hidden>Market data isn't ready yet. On GitHub open <b>Actions → Update market data → Run workflow</b> once. After that it updates by itself every weekday evening.</div>
 
     <div id="rOut" hidden>
+      <!-- 1. Plain words -->
       <div class="card">
-        <h2 id="rRangeTitle">10,000 possible futures</h2>
-        <div class="range" id="rRange"></div>
-        <div class="rangelab"><span id="rLo"></span><span id="rMid"></span><span id="rHi"></span></div>
-        <div class="tiles">
-          <div class="tile"><div class="k">Bad case (1 in 20)</div><div class="v bad" id="tVar"></div><div class="s" id="tVarS"></div></div>
-          <div class="tile"><div class="k">Very bad (avg of worst 5%)</div><div class="v bad" id="tEs"></div><div class="s" id="tEsS"></div></div>
-          <div class="tile"><div class="k">Chance of being down</div><div class="v" id="tLoss"></div><div class="s">at the end of the period</div></div>
-          <div class="tile"><div class="k">Worst real past stretch</div><div class="v bad" id="tHist"></div><div class="s" id="tHistS"></div></div>
-        </div>
-        <div class="tiles" style="grid-template-columns:1fr">
-          <div class="tile"><div class="k">If the 2020 crash happened again (19 Feb – 23 Mar 2020)</div><div class="v bad" id="tCrash"></div><div class="s" id="tCrashS"></div></div>
-        </div>
+        <h2 id="pwTitle">In plain words</h2>
+        <div class="pw"><div class="pwk">Normal</div><div class="pwv"><b id="pwNorm"></b><div class="muted" id="pwNormS"></div></div></div>
+        <div class="pw"><div class="pwk bad">Bad</div><div class="pwv"><b id="pwBad"></b><div class="muted" id="pwBadS"></div></div></div>
+        <div class="pw"><div class="pwk bad">Crash</div><div class="pwv"><b id="pwCrash"></b><div class="muted" id="pwCrashS"></div></div></div>
         <p class="say" id="rSay"></p>
       </div>
 
+      <!-- 2. Picture of 10,000 futures -->
+      <div class="card">
+        <h2 id="rRangeTitle">10,000 possible futures</h2>
+        <div class="legend" style="margin-top:0">Each bar = how many futures ended at that gain or loss. Orange = the worst 1 in 20.</div>
+        <div id="rHist"></div>
+        <div class="tiles">
+          <div class="tile"><div class="k">Bad case (1 in 20)</div><div class="v" id="tVar"></div><div class="s" id="tVarS"></div></div>
+          <div class="tile"><div class="k">Average when it's bad</div><div class="v" id="tEs"></div><div class="s" id="tEsS"></div></div>
+        </div>
+        <div style="margin-top:var(--s2)">
+          <div class="mixlab"><span>Chance of being down after…</span><span></span></div>
+          <div id="rDown"></div>
+        </div>
+      </div>
+
+      <!-- 3. Real crashes -->
+      <div class="card">
+        <h2>Real falls, replayed on your money</h2>
+        <div class="legend" style="margin-top:0">What each real event would do to today's holdings, with the same mix.</div>
+        <div id="rEvents"></div>
+        <div class="tiles" style="grid-template-columns:1fr 1fr">
+          <div class="tile"><div class="k">Biggest fall from a high</div><div class="v" id="tMdd"></div><div class="s" id="tMddS"></div></div>
+          <div class="tile"><div class="k">Time to get back</div><div class="v" id="tRec"></div><div class="s" id="tRecS"></div></div>
+        </div>
+      </div>
+
+      <!-- 4. Honesty check -->
+      <div class="card">
+        <h2>Can you trust the bad case?</h2>
+        <div class="legend" style="margin-top:0">A quant's first check: in real history, how often was it worse than the model's "1 in 20"?</div>
+        <div class="check"><div class="big-num" id="ckNum"></div><div class="muted" id="ckTxt"></div></div>
+        <div class="note" id="ckNote" style="margin-top:var(--s2)"></div>
+      </div>
+
+      <!-- 5. Contribution -->
       <div class="card">
         <h2>Where the risk comes from</h2>
         <div class="legend" style="margin-top:0">Blue: share of your money. Orange: share of the loss in the bad 1-in-20 futures.</div>
         <div id="rContrib"></div>
+        <div class="legend" id="rContribSay"></div>
       </div>
 
       <div class="card">
         <h2>How this works</h2>
         <ul class="rules">
           <li>Each future is built from <b>real past days since 2011</b>, picked in 5-day blocks so crash days stay together.</li>
-          <li>It shows a <b>range, not a forecast</b>. Nobody knows which way the market goes next.</li>
+          <li>It shows a <b>range, not a forecast</b>. The "middle" number is the least reliable part; the bad cases are the useful part.</li>
           <li>Real crashes can be worse than anything in the data.</li>
           <li id="rNotes"></li>
         </ul>
@@ -333,6 +384,16 @@ function prepReturns(){
 function findDay(yyyymmdd){ const d = market.returns.dates; for (let i = 0; i < d.length; i++) if (d[i] >= yyyymmdd) return i; return -1; }
 const fmtDay = n => { const s = String(n); return new Date(+s.slice(0,4), +s.slice(4,6)-1, +s.slice(6,8)).toLocaleDateString("en-IN", {day:"numeric", month:"short", year:"numeric"}); };
 
+// Real events (peak -> trough of Nifty, approximate dates)
+const EVENTS = [
+  {name:"Euro debt crisis",       from:20110801, to:20111220},
+  {name:"Taper tantrum (rupee crash)", from:20130520, to:20130828},
+  {name:"China slowdown fall",    from:20150304, to:20160229},
+  {name:"COVID crash",            from:20200219, to:20200323},
+  {name:"Rate-hike fall",         from:20211019, to:20220617},
+  {name:"2024–25 correction",     from:20240927, to:20250303},
+];
+
 function riskInputs(){
   const H = holdings();
   if (H.value > 0) return {values: H.rows.map(r => r.value), total: H.value, src:"holdings"};
@@ -341,15 +402,21 @@ function riskInputs(){
   return {values: ETFS.map(e => amt * num(state.pct[e.id]) / pctSum), total: amt, src:"target"};
 }
 
-function runRisk(){
+// growth of each holding between two day-indexes (log-return sums), LIQUIDBEES at a steady yield
+function windowPnl(values, idxOf, s, e){
+  let tot = 0;
+  for (let a = 0; a < values.length; a++) { const v = values[a]; if (!v) continue;
+    tot += v * (idxOf[a] >= 0 ? Math.exp(CS[idxOf[a]][e] - CS[idxOf[a]][s]) - 1 : Math.pow(1 + LIQUID_YIELD, (e - s) / 252) - 1); }
+  return tot;
+}
+
+function runRisk(months){
   const inp = riskInputs();
   const R = market.returns, T = R.dates.length;
-  const days = hold.horizon * MONTH_DAYS;
+  const days = months * MONTH_DAYS;
   const idxOf = ETFS.map(e => R.assets.indexOf(e.id));        // -1 = no history (LIQUIDBEES)
   const liqGrow = Math.pow(1 + LIQUID_YIELD, days / 252) - 1;
   const n = ETFS.length;
-
-  // block lengths that add up to `days`
   const blocks = []; for (let left = days; left > 0; left -= BLOCK) blocks.push(Math.min(BLOCK, left));
 
   const rnd = mulberry32(SEED);
@@ -378,26 +445,37 @@ function runRisk(){
   }
   const es = esSum / esN;
 
-  // worst real stretch of the same length, with today's rupees
-  let worst = Infinity, worstEnd = 0;
-  for (let s = 0; s + days <= T; s++) {
-    let tot = 0;
-    for (let a = 0; a < n; a++) { const v = inp.values[a]; if (!v) continue;
-      tot += v * (idxOf[a] >= 0 ? Math.exp(CS[idxOf[a]][s + days] - CS[idxOf[a]][s]) - 1 : liqGrow); }
-    if (tot < worst) { worst = tot; worstEnd = s + days - 1; }
+  // honesty check: real, NON-overlapping past periods of the same length that were worse than the bad case
+  let periods = 0, breaches = 0, worst = Infinity, worstEnd = 0;
+  for (let s = 0; s + days <= T; s += days) {
+    const p = windowPnl(inp.values, idxOf, s, s + days); periods++; if (p < cut) breaches++;
+  }
+  for (let s = 0; s + days <= T; s++) {                         // worst real stretch (any start day)
+    const p = windowPnl(inp.values, idxOf, s, s + days); if (p < worst) { worst = p; worstEnd = s + days - 1; }
   }
 
-  // replay of the 2020 crash
-  const c0 = findDay(20200219), c1 = findDay(20200324);
-  let crash = null;
-  if (c0 >= 0 && c1 > c0) {
-    crash = 0;
-    for (let a = 0; a < n; a++) { const v = inp.values[a]; if (!v) continue;
-      crash += v * (idxOf[a] >= 0 ? Math.exp(CS[idxOf[a]][c1] - CS[idxOf[a]][c0]) - 1 : 0); }
-  }
+  return {inp, idxOf, sorted, p5:cut, p50:q(0.5), p95:q(0.95), es, down: down / N_SIMS, worst, worstEnd,
+          periods, breaches, contrib: Array.from(contrib, c => es !== 0 ? (c / esN) / es : 0)};
+}
 
-  return {inp, p5:cut, p50:q(0.5), p95:q(0.95), es, down: down / N_SIMS, worst, worstEnd,
-          crash, contrib: Array.from(contrib, c => es !== 0 ? (c / esN) / es : 0)};
+// whole-history path of today's mix (kept at today's weights): biggest fall and recovery time
+function drawdownStats(inp, idxOf){
+  const T = market.returns.dates.length, w = inp.values.map(v => v / inp.total);
+  const liqDay = Math.pow(1 + LIQUID_YIELD, 1 / 252) - 1;
+  let eq = 1, peak = 1, peakI = 0, mdd = 0, mddPeakI = 0, mddI = 0;
+  const path = new Float64Array(T);
+  for (let i = 0; i < T; i++) {
+    let r = 0;
+    for (let a = 0; a < w.length; a++) if (w[a]) r += w[a] * (idxOf[a] >= 0 ? Math.exp(CS[idxOf[a]][i+1] - CS[idxOf[a]][i]) - 1 : liqDay);
+    eq *= 1 + r; path[i] = eq;
+    if (eq > peak) { peak = eq; peakI = i; }
+    const dd = eq / peak - 1;
+    if (dd < mdd) { mdd = dd; mddPeakI = peakI; mddI = i; }
+  }
+  let recI = -1; const peakVal = path[mddPeakI];
+  for (let i = mddI; i < T; i++) if (path[i] >= peakVal) { recI = i; break; }
+  return {mdd, peakDay: market.returns.dates[mddPeakI], lowDay: market.returns.dates[mddI],
+          recDays: recI >= 0 ? recI - mddPeakI : null, recDay: recI >= 0 ? market.returns.dates[recI] : null};
 }
 
 // =====================================================================
@@ -507,6 +585,23 @@ function renderHold(H){
   $("priceDate").textContent = d ? `Prices as of ${new Date(d).toLocaleDateString("en-IN", {day:"numeric", month:"short", year:"numeric"})}.` : "Auto prices not loaded yet. Type prices to see values.";
 }
 
+const yrs = m => { const y = m / 12; return y < 1.5 ? `${Math.round(m)} months` : `${y.toFixed(y < 10 ? 1 : 0)} years`; };
+const sipMonths = x => { const s = num(state.total); if (!s) return ""; const m = Math.abs(x) / s; return m >= 0.95 ? ` ≈ ${m.toFixed(m < 10 ? 1 : 0)} months of your SIP` : ""; };
+
+function histogramSVG(sorted, cut, tot){
+  const W = 320, H = 120, B = 40, lo = sorted[Math.floor(sorted.length * 0.002)], hi = sorted[Math.floor(sorted.length * 0.998)];
+  const step = (hi - lo) / B || 1, counts = new Array(B).fill(0);
+  for (const v of sorted) { const b = Math.floor((v - lo) / step); if (b >= 0 && b < B) counts[b]++; }
+  const max = Math.max(...counts), bw = W / B, X = v => (v - lo) / (hi - lo) * W;
+  let bars = counts.map((c, i) => { const h = c / max * (H - 18), x0 = lo + i * step;
+    return `<rect x="${(i*bw+0.5).toFixed(1)}" y="${(H - 18 - h).toFixed(1)}" width="${(bw-1).toFixed(1)}" height="${h.toFixed(1)}" rx="1.5" fill="${x0 + step <= cut ? "var(--risk)" : "var(--accent)"}" opacity="${x0 + step <= cut ? 0.9 : 0.35}"/>`; }).join("");
+  const z = X(0), c = X(cut);
+  const lab = (x, t, anchor) => `<text x="${x.toFixed(1)}" y="${H - 3}" font-size="10" fill="var(--muted)" text-anchor="${anchor}">${t}</text>`;
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Spread of 10,000 possible outcomes">${bars}
+    ${z > 0 && z < W ? `<line x1="${z}" x2="${z}" y1="0" y2="${H-16}" stroke="var(--ink)" stroke-width="1" stroke-dasharray="2 2"/>` : ""}
+    ${lab(2, spc(lo / tot, 0), "start")}${z > 20 && z < W - 20 ? lab(z, "0", "middle") : ""}${lab(W - 2, spc(hi / tot, 0), "end")}</svg>`;
+}
+
 function renderRisk(){
   document.querySelectorAll("#horizon button").forEach(b => b.classList.toggle("on", +b.dataset.h === hold.horizon));
   const H = holdings();
@@ -517,34 +612,69 @@ function renderRisk(){
   if (!ready) return;
   if (!CS) prepReturns();
 
-  const r = runRisk(), tot = r.inp.total, mon = hold.horizon === 1 ? "month" : `${hold.horizon} months`;
-  $("rRangeTitle").textContent = `Next ${mon}: 10,000 possible futures`;
+  const m = hold.horizon, r = runRisk(m), tot = r.inp.total;
+  const per = m === 1 ? "month" : m === 12 ? "year" : `${m} months`;
+  const every = yrs(20 * m);                       // "1 in 20 periods" as calendar time
 
-  // range bar: 5% .. 95%, mark middle and zero
-  const lo = Math.min(r.p5, 0), hi = Math.max(r.p95, 0), span = hi - lo || 1, X = v => ((v - lo) / span * 100).toFixed(2) + "%";
-  $("rRange").innerHTML = `<div class="track"></div><div class="span" style="left:${X(r.p5)};width:${((r.p95 - r.p5) / span * 100).toFixed(2)}%"></div>
-    <div class="zero" style="left:${X(0)}"></div><div class="mid" style="left:${X(r.p50)}"></div>`;
-  $("rLo").textContent = `bad ${sinr(r.p5)}`; $("rMid").textContent = `middle ${sinr(r.p50)}`; $("rHi").textContent = `good ${sinr(r.p95)}`;
+  // ---- 1. plain words ----
+  $("pwTitle").textContent = `Over the next ${per}, in plain words`;
+  $("pwNorm").textContent = `${sinr(r.sorted[Math.floor(N_SIMS*0.25)])} to ${sinr(r.sorted[Math.floor(N_SIMS*0.75)])}`;
+  $("pwNormS").textContent = `Half of all futures land here. ${pc(r.down,0)} of them end below today's value.`;
+  $("pwBad").textContent = `${sinr(r.p5)} or worse · avg ${sinr(r.es)}`;
+  $("pwBadS").textContent = `About once every ${every}.${sipMonths(r.es) ? " The average is" + sipMonths(r.es) + "." : ""}`;
+  $("pwCrash").textContent = `${sinr(r.worst)} (${spc(r.worst / tot)})`;
+  $("pwCrashS").textContent = `The worst real ${per} in the data, ending ${fmtDay(market.returns.dates[r.worstEnd])}.${sipMonths(r.worst) ? " That's" + sipMonths(r.worst) + "." : ""}`;
+  $("rSay").innerHTML = `Plan for the <b>Crash</b> line, not the Bad line. If seeing ${inr(tot)} become <b>${inr(tot + r.worst)}</b> would make you stop the SIP or sell, hold more gold and bonds. Decide that now, while markets are calm.`;
 
-  $("tVar").textContent = sinr(r.p5);  $("tVarS").textContent = `${spc(r.p5 / tot)} · or worse in 1 of 20`;
-  $("tEs").textContent  = sinr(r.es);  $("tEsS").textContent  = `${spc(r.es / tot)} · when it's bad`;
-  $("tLoss").textContent = pc(r.down, 0);
-  $("tHist").textContent = sinr(r.worst); $("tHistS").textContent = `${spc(r.worst / tot)} · ending ${fmtDay(market.returns.dates[r.worstEnd])}`;
-  if (r.crash !== null) { $("tCrash").textContent = sinr(r.crash); $("tCrashS").textContent = `${spc(r.crash / tot)} in about 5 weeks`; }
-  ["tVar","tEs","tHist","tCrash"].forEach((id,i) => { const v = [r.p5, r.es, r.worst, r.crash][i]; $(id).className = "v " + (v < 0 ? "bad" : "good"); });
+  // ---- 2. picture ----
+  $("rRangeTitle").textContent = `Next ${per}: 10,000 possible futures`;
+  $("rHist").innerHTML = histogramSVG(r.sorted, r.p5, tot);
+  $("tVar").textContent = sinr(r.p5); $("tVarS").textContent = `${spc(r.p5 / tot)} · or worse, once every ${every}`;
+  $("tEs").textContent  = sinr(r.es); $("tEsS").textContent  = `${spc(r.es / tot)} · average of those bad futures`;
+  ["tVar","tEs"].forEach((id,i) => $(id).className = "v " + ([r.p5, r.es][i] < 0 ? "bad" : "good"));
+  $("rDown").innerHTML = [1,3,6,12].map(h => {
+    const d = h === m ? r.down : runRisk(h).down;
+    return `<div class="downrow${h === m ? " on" : ""}"><span class="l">${h === 12 ? "1 year" : h + (h === 1 ? " month" : " months")}</span><span class="t"><div style="width:${d*100}%"></div></span><span class="p">${pc(d,0)}</span></div>`;
+  }).join("");
 
-  $("rSay").innerHTML = `In 1 of 20 futures, your ${inr(tot)} could be <b>${inr(tot + r.p5)}</b> or less after ${hold.horizon === 1 ? "a month" : mon}.
-    If that happens, <b>don't stop the SIP</b>: that's when it buys the most units.`;
+  // ---- 3. real falls ----
+  $("rEvents").innerHTML = EVENTS.map(ev => {
+    const s = findDay(ev.from), e = findDay(ev.to);
+    if (s < 0 || e <= s) return "";
+    const p = windowPnl(r.inp.values, r.idxOf, s, e + 1);
+    const wk = Math.round((e - s) / 5);
+    return `<div class="ev"><div class="n">${ev.name}<small>${fmtDay(market.returns.dates[s])} – ${fmtDay(market.returns.dates[e])} · ${wk < 9 ? wk + " weeks" : Math.round(wk / 4.3) + " months"}</small></div>
+      <div class="x ${p < 0 ? "bad" : "good"}">${sinr(p)}<small>${spc(p / tot)}</small></div></div>`;
+  }).join("");
+  const dd = drawdownStats(r.inp, r.idxOf);
+  $("tMdd").textContent = spc(dd.mdd); $("tMdd").className = "v bad";
+  $("tMddS").textContent = `${fmtDay(dd.peakDay)} → ${fmtDay(dd.lowDay)} · ${inr(dd.mdd * tot)} on today's money`;
+  $("tRec").textContent = dd.recDays === null ? "not yet" : yrs(dd.recDays / 21);
+  $("tRecS").textContent = dd.recDays === null ? "still below that old high" : `back to the old high by ${fmtDay(dd.recDay)}`;
 
-  // contribution bars
-  const H2 = r.inp.values.map(v => v / tot);
+  // ---- 4. honesty check ----
+  const exp = r.periods * 0.05, rate = r.breaches / r.periods;
+  $("ckNum").textContent = `${r.breaches} of ${r.periods}`;
+  $("ckTxt").textContent = `real past ${m === 1 ? "months" : m === 12 ? "years" : m + "-month periods"} were worse than the bad case. A fair model expects about ${exp.toFixed(exp < 10 ? 1 : 0)} (5%).`;
+  $("ckNote").textContent = r.periods < 25
+    ? `Only ${r.periods} real periods this long exist, too few to judge. Treat the ${per} numbers as rough.`
+    : rate > 0.08 ? `Real history was worse than the model more often than it should be. Bad stretches come in runs, which the model only partly captures. Lean on the Crash line.`
+    : rate < 0.02 ? `The model looks cautious here: real history crossed the bad case less often than expected.`
+    : `About right. The bad-case number is a fair guide for ordinary bad ${per === "month" ? "months" : "periods"}, not for crashes.`;
+  $("ckNote").style.background = rate > 0.08 || r.periods < 25 ? "" : "var(--soft)";
+  $("ckNote").style.color = rate > 0.08 || r.periods < 25 ? "" : "var(--ink)";
+
+  // ---- 5. contribution ----
+  const W2 = r.inp.values.map(v => v / tot);
   $("rContrib").innerHTML = ETFS.map((e,i) => {
-    if (H2[i] < 0.0005 && Math.abs(r.contrib[i]) < 0.0005) return "";
+    if (W2[i] < 0.0005 && Math.abs(r.contrib[i]) < 0.0005) return "";
     const c = Math.max(0, r.contrib[i]);
-    return `<div class="rbar"><div class="lab"><span>${e.id}</span><span class="muted">${Math.round(H2[i]*100)}% money · ${Math.round(r.contrib[i]*100)}% of bad loss</span></div>
-      <div class="tr"><div style="width:${H2[i]*100}%;background:var(--accent)"></div></div>
+    return `<div class="rbar"><div class="lab"><span>${e.id}</span><span class="muted">${Math.round(W2[i]*100)}% money · ${Math.round(r.contrib[i]*100)}% of bad loss</span></div>
+      <div class="tr"><div style="width:${W2[i]*100}%;background:var(--accent)"></div></div>
       <div class="tr"><div style="width:${Math.min(100, c*100)}%;background:var(--risk)"></div></div></div>`;
   }).join("");
+  const top = ETFS.map((e,i) => ({id:e.id, w:W2[i], c:r.contrib[i]})).sort((a,b) => b.c - a.c)[0];
+  $("rContribSay").textContent = top && top.c > 0 ? `${top.id} is ${Math.round(top.w*100)}% of your money but ${Math.round(top.c*100)}% of the bad-case loss. Anything near 0% is acting as a cushion.` : "";
   $("rNotes").innerHTML = `Data ${fmtDay(market.returns.dates[0])} to ${fmtDay(market.returns.dates.at(-1))}. Bond history before 2020 is a steady 7% (its risk is understated). LIQUIDBEES assumed a steady ${pc(LIQUID_YIELD,0)}/yr.`;
 }
 
