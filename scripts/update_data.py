@@ -10,7 +10,7 @@ Cleaning (same rules as our Colab tests):
   - a one-day move bigger than 35% is an unadjusted split -> set to 0
   - EBBETF0433 listed in 2022: before that use EBBETF0430's moves; before any bond ETF, a steady 7%/yr
 """
-import json, sys, time, datetime as dt
+import json, os, sys, time, datetime as dt
 import numpy as np
 import pandas as pd
 import yfinance as yf
@@ -89,6 +89,7 @@ out = {
     },
     "notes": notes,
 }
+os.makedirs(os.path.dirname(OUT), exist_ok=True)   # git does not keep empty folders
 with open(OUT, "w") as f:
     json.dump(out, f, separators=(",", ":"))
 
