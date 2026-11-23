@@ -2,7 +2,11 @@ name: Update market data
 
 on:
   schedule:
+    # GitHub can run schedules late or skip them, so there are two backups.
+    # If prices haven't changed, a run commits nothing.
     - cron: "17 13 * * 1-5"     # 18:47 IST, Mon-Fri (after NSE close)
+    - cron: "47 15 * * 1-5"     # 21:17 IST, backup
+    - cron: "47 1 * * 2-6"      # 07:17 IST next morning, backup (Tue-Sat)
   workflow_dispatch:            # "Run workflow" button for a manual update
 
 permissions:
