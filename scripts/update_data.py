@@ -89,6 +89,15 @@ out = {
     },
     "notes": notes,
 }
+# Backup runs: if nothing but the timestamp changed, leave the file alone (no empty commits)
+try:
+    old = json.load(open(OUT))
+    if {k: v for k, v in old.items() if k != "updated"} == {k: v for k, v in out.items() if k != "updated"}:
+        print("No new data since last run. Nothing written.")
+        sys.exit(0)
+except (FileNotFoundError, ValueError):
+    pass
+
 os.makedirs(os.path.dirname(OUT), exist_ok=True)   # git does not keep empty folders
 with open(OUT, "w") as f:
     json.dump(out, f, separators=(",", ":"))
