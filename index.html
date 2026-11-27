@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>SIP Calculator</title>
 <link rel="stylesheet" href="/theme.css">
+<link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#fafafa">
 <meta name="color-scheme" content="only light">
 <style>
@@ -110,7 +111,6 @@
 </head>
 <body>
 <div class="wrap">
-  <a class="back" href="/">← All apps</a>
   <h1 class="title">SIP Calculator</h1>
   <p class="sub" id="subline">Split this month's money, track what you hold, and see your risk in rupees.</p>
 
@@ -798,5 +798,7 @@ fetch("data/market.json", {cache:"no-cache"})
   .then(d => { if (d && d.prices) { market = d; CS = null; update(); if (tab === "risk") renderRisk(); } })
   .catch(() => {});
 </script>
+<!-- Shared top bar (logo → home, account menu): /topbar.js in the hub repo -->
+<script src="/topbar.js"></script>
 </body>
 </html>
